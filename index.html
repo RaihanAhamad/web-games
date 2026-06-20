@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Web Games</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            min-height: 100vh;
+            background-color: #ffffff;
+            color: #333333;
+            overflow-x: hidden;
+        }
+
+        /* 1. SIDEBAR (With transition for smooth sliding) */
+        .sidebar {
+            width: 260px;
+            background-color: #1a1a1a;
+            color: #ffffff;
+            display: flex;
+            flex-direction: column;
+            flex-shrink: 0;
+            transition: transform 0.3s ease, margin-left 0.3s ease;
+        }
+        
+        /* The Class that hides the sidebar */
+        .sidebar.hidden {
+            margin-left: -260px;
+        }
+
+        .sidebar-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .sidebar-logo {
+            font-size: 24px;
+            font-weight: bold;
+            font-family: serif;
+            letter-spacing: 1px;
+            color: #ffffff;
+        }
+
+        /* Toggle Button Inside Sidebar Header */
+        .menu-toggle-btn {
+            background: none;
+            border: none;
+            color: white;
+            font-size: 24px;
+            cursor: pointer;
+            padding: 5px;
+            line-height: 1;
+        }
+
+        .sidebar-menu {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+            display: flex;
+            flex-direction: column;
+        }
+        .sidebar-menu li a {
+            display: block;
+            padding: 14px 20px;
+            color: #b3b3b3;
+            text-decoration: none;
+            font-size: 13px;
+            font-weight: 600;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            transition: background-color 0.2s, color 0.2s;
+        }
+        .sidebar-menu li a.active {
+            background-color: #611f35; 
+            color: #ffffff;
+        }
+        .sidebar-menu li a:hover:not(.active) {
+            background-color: #2b2b2b;
+            color: #ffffff;
+        }
+
+        /* 2. MAIN CONTENT AREA */
+        .main-viewport {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            background-color: #fcfcfc;
+            width: 100%;
+        }
+
+        /* Floating Menu Trigger Button when Sidebar is closed */
+        .floating-trigger-btn {
+            position: absolute;
+            top: 15px;
+            left: 15px;
+            background-color: rgba(26, 26, 26, 0.8);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            color: white;
+            font-size: 22px;
+            padding: 8px 12px;
+            border-radius: 6px;
+            cursor: pointer;
+            z-index: 100;
+            display: none; /* hidden unless sidebar collapses */
+        }
+
+        /* Show the floating button only when the sidebar is hidden */
+        .sidebar.hidden + .main-viewport .floating-trigger-btn {
+            display: block;
+        }
+
+        /* Hero Image Banner Box */
+        .hero-banner {
+            width: 100%;
+            height: 280px;
+            background: linear-gradient(rgba(0, 0, 0, 0.1), rgba(0, 0, 0, 0.1)), url('banner.png') center/cover no-repeat;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            position: relative;
+        }
+        .hero-title-box {
+            border: 4px solid #ffffff;
+            padding: 15px 60px;
+            background-color: rgba(0, 0, 0, 0.15);
+            backdrop-filter: blur(2px);
+        }
+        .hero-title-box h1 {
+            margin: 0;
+            color: #ffffff;
+            font-size: 52px;
+            font-family: 'Georgia', cursive, sans-serif;
+            font-style: italic;
+            font-weight: bold;
+            letter-spacing: 1px;
+        }
+
+        /* 3. LIST OF LINKS */
+        .games-list-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+        }
+        .game-row-link {
+            width: 100%;
+            padding: 24px;
+            text-align: center;
+            text-decoration: none;
+            font-size: 15px;
+            font-weight: bold;
+            color: #1a1a1a;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            border-bottom: 1px solid #eaeaea;
+            transition: background-color 0.2s;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            gap: 8px;
+        }
+        .game-row-link:nth-child(even) {
+            background-color: #e9e9e7;
+            color: #611f35; 
+        }
+        .game-row-link:nth-child(odd) {
+            background-color: #ffffff;
+        }
+        .game-row-link:hover {
+            filter: brightness(0.95);
+            background-color: #f1f2f6;
+        }
+
+        @media (max-width: 768px) {
+            body {
+                flex-direction: column;
+            }
+            .sidebar {
+                width: 100%;
+            }
+            .sidebar.hidden {
+                margin-left: 0;
+                display: none;
+            }
+            .hero-title-box h1 {
+                font-size: 36px;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <nav class="sidebar" id="sidebarMenu">
+        <div class="sidebar-header">
+            <div class="sidebar-logo">WG</div>
+            <button class="menu-toggle-btn" onclick="toggleSidebar()">❮</button>
+        </div>
+        <ul class="sidebar-menu">
+            <li><a href="#" class="active">Home</a></li>
+            <li><a href="#">Number Guess Game</a></li>
+            <li><a href="https://raihanahamad.github.io/library-simulator/">Library Simulator: Organize the Books</a></li>
+            <li><a href="#">Find the Missing Number</a></li>
+            <li><a href="#">Find Shortest Route</a></li>
+        </ul>
+    </nav>
+
+    <main class="main-viewport">
+        
+        <button class="floating-trigger-btn" onclick="toggleSidebar()">☰</button>
+
+        <div class="hero-banner">
+            <div class="hero-title-box">
+                <h1>Web Games</h1>
+            </div>
+        </div>
+
+        <div class="games-list-container">
+            <a href="#" class="game-row-link">🎯 Number Guess Game</a>
+            <a href="https://raihanahamad.github.io/library-simulator/" class="game-row-link">📚 Library Simulator: Organize the Books</a>
+            <a href="#" class="game-row-link">Find the Missing Number</a>
+            <a href="#" class="game-row-link">Find Shortest Route</a>
+        </div>
+    </main>
+
+    <script>
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebarMenu');
+            sidebar.classList.toggle('hidden');
+        }
+    </script>
+
+</body>
+</html>
