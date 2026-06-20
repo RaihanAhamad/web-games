@@ -184,15 +184,22 @@
         }
 
         @media (max-width: 768px) {
+            /* Keep the layout row-based so the sidebar stays on the left layer */
             body {
-                flex-direction: column;
+                flex-direction: row; 
             }
+            /* Make the sidebar float completely on top of the content instead of pushing it */
             .sidebar {
-                width: 100%;
+                position: fixed;
+                top: 0;
+                left: 0;
+                height: 100vh;
+                z-index: 999;
             }
+            /* Hide it completely off-screen to the left on mobile by default */
             .sidebar.hidden {
-                margin-left: 0;
-                display: none;
+                margin-left: 0; /* Clear the desktop margin rule */
+                transform: translateX(-260px);
             }
             .hero-title-box h1 {
                 font-size: 36px;
@@ -202,7 +209,7 @@
 </head>
 <body>
 
-    <nav class="sidebar" id="sidebarMenu">
+    <nav class="sidebar hidden" id="sidebarMenu">
         <div class="sidebar-header">
             <div class="sidebar-logo">WG</div>
             <button class="menu-toggle-btn" onclick="toggleSidebar()">❮</button>
@@ -211,7 +218,7 @@
             <li><a href="#" class="active">Home</a></li>
             <li><a href="Number-Guess-Game.html">Number Guess Game</a></li>
             <li><a href="https://raihanahamad.github.io/library-simulator/">LIBRARY SIMULATOR</a></li>
-            <li><a href="Math_Missing_Number.html#">Find the Missing Number</a></li>
+            <li><a href="Math_Missing_Number.html">Find the Missing Number</a></li>
             <li><a href="Spatial-Scanning.html">Find Shortest Route</a></li>
         </ul>
     </nav>
