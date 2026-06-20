@@ -1,0 +1,517 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Math Sequence Quiz</title>
+    <style>
+        body {
+            background-color: #d3d3d3;
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            transition: background-color 0.4s ease;
+        }
+
+        .quiz-card {
+            background-color: #ffffff;
+            width: 360px;
+            min-height: 480px;
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0px 8px 24px rgba(0, 0, 0, 0.2);
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h2 {
+            margin: 0 0 20px 0;
+            font-size: 20px;
+            color: #333;
+            width: 100%;
+            text-align: left;
+        }
+
+        .sequence-container {
+            display: block;
+            width: 100%;
+            font-size: 18px;
+            font-weight: bold;
+            color: #333;
+            margin-bottom: 25px;
+            text-align: left;
+            white-space: nowrap;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .blank-slot {
+            color: #007bff;
+            text-decoration: underline;
+        }
+
+        /* Combined horizontal container row for side-by-side elements */
+        .entry-row-container {
+            display: flex;
+            flex-direction: row;
+            align-items: center;
+            justify-content: center;
+            gap: 12px;
+            width: 100%;
+            margin-bottom: 15px;
+        }
+
+        .input-x {
+            width: 90px;
+            font-size: 16px;
+            font-weight: bold;
+            text-align: center;
+            border: 2px solid #555;
+            border-radius: 6px;
+            outline: none;
+            padding: 8px 5px;
+        }
+
+        .action-row {
+            display: flex;
+            gap: 10px;
+            width: 100%;
+            justify-content: center;
+            margin: 4px 0;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            font-size: 14px;
+            font-weight: bold;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            text-align: center;
+            min-width: 110px;
+        }
+
+        .btn:active { transform: scale(0.98); }
+        .btn-submit { background-color: #ffeb3b; color: #000; } 
+        .btn-clue { background-color: #00bcd4; color: #fff; }   
+        .btn-ans { background-color: #e91e63; color: #fff; }    
+        .btn-next { background-color: #ff9800; color: #fff; }   
+
+        .feedback {
+            font-size: 20px;
+            font-weight: bold;
+            margin: 8px 0;
+            width: 100%;
+            text-align: center;
+            min-height: 24px;
+        }
+        .right-text { color: blue; }
+        .wrong-text { color: red; }
+
+        .clue-stack-container {
+            width: 100%;
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+            margin-top: 15px;
+        }
+
+        .clue-line {
+            background-color: #f1f1f1;
+            padding: 8px 12px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 13px;
+            text-align: left;
+            border-left: 3px solid #00bcd4;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(-5px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .hidden { display: none !important; }
+    </style>
+</head>
+<body>
+
+<div class="quiz-card">
+    <h2>Find the Missing Number</h2>
+    
+    <div class="sequence-container" id="sequenceTrack"></div>
+
+    <div class="entry-row-container">
+        <input type="number" class="input-x" id="userInput" placeholder="Enter X" onkeydown="handleKeyPress(event)">
+        <button class="btn btn-submit" id="submitBtn" onclick="checkAnswer()">Submit</button>
+    </div>
+    
+    <div class="feedback" id="feedbackText"></div>
+    
+    <div class="action-row">
+        <button class="btn btn-clue hidden" id="clueBtn" onclick="revealClue()">Clue 1</button>
+        <button class="btn btn-ans hidden" id="ansBtn" onclick="showAnswer()">Answer</button>
+    </div>
+
+    <div class="action-row">
+        <button class="btn btn-next hidden" id="nextBtn" onclick="initiateNextRound()">Next</button>
+    </div>
+    
+    <div class="clue-stack-container" id="clueStack"></div>
+</div>
+
+<script>
+    // --- Helper Math Core Functions ---
+    function getRandomInt(min, max) {
+        return Math.floor(Math.random() * (max - min + 1)) + min;
+    }
+
+    function getRandomChoice(arr) {
+        return arr[Math.floor(Math.random() * arr.length)];
+    }
+
+    function generatePrimePool(fstNum) {
+        let primes = [];
+        for (let num = 2; num < 200; num++) {
+            let isPrime = true;
+            for (let d = 2; d <= Math.sqrt(num); d++) {
+                if (num % d === 0) { isPrime = false; break; }
+            }
+            if (isPrime) primes.push(num);
+        }
+        let startIdx = getRandomInt(fstNum, fstNum + 1);
+        return primes.slice(startIdx, startIdx + 10);
+    }
+
+    function generateFibonacciPool(stN, gap) {
+        let pool = [];
+        let first = getRandomInt(stN, stN + 10);
+        let second = getRandomInt(first, first + gap);
+        for (let i = 0; i < 10; i++) {
+            pool.push(first);
+            let nextVal = first + second;
+            first = second;
+            second = nextVal;
+        }
+        return pool;
+    }
+
+    function generateAPPool(fSt, fEnd, gpSt) {
+        let pool = [];
+        let start = getRandomInt(fSt, fEnd);
+        let gap = getRandomInt(gpSt, gpSt + 2);
+        for (let i = 0; i < 10; i++) {
+            pool.push(start + gap * i);
+        }
+        return pool;
+    }
+
+    function generateGPPool(fSt, fEnd, mulSt, mulEnd) {
+        let pool = [];
+        let first = getRandomInt(fSt, fEnd);
+        let multiplier = getRandomInt(mulSt, mulEnd);
+        for (let i = 0; i < 10; i++) {
+            pool.push(first);
+            first = first * multiplier;
+        }
+        return pool;
+    }
+
+    // --- Sequence Logic Engines ---
+    function semiF1_PowerAdd(n) {
+        let sequence = [];
+        
+        // 1. Structure the pool configurations to preserve their type labels
+        let xPools = [
+            { type: 'Prime', pool: generatePrimePool(0) },
+            { type: 'AP', pool: generateAPPool(2, 4, 1) },
+            { type: 'GP', pool: generateGPPool(1, 2, 1, 2) }
+        ];
+        let chosenX = getRandomChoice(xPools);
+        let setX = chosenX.pool;
+        let xType = chosenX.type;
+
+        let pow1 = getRandomInt(2, 3);
+        let pow2 = getRandomInt(2, 3);
+        let powerType = getRandomChoice(['same', 'diff']);
+        let operation = getRandomChoice(['+', '-']);
+        let structuralPattern = getRandomChoice(['cont', 'flip']);
+
+        let yPools = [
+            { type: 'AP', pool: generateAPPool(0, 4, 0) },
+            { type: 'GP', pool: generateGPPool(1, 5, 1, 2) },
+            { type: xType, pool: setX } // If it picks itself, it retains X's type
+        ];
+        let chosenY = getRandomChoice(yPools);
+        let setY = chosenY.pool;
+        let yType = chosenY.type;
+
+        // 2. Build the structural notation string for Clue 2
+        let initialSign = operation;
+        // If continuous, match initialSign. If flip, show opposite sign.
+        let patternRule = (structuralPattern === 'cont') ? initialSign : (initialSign === '+' ? '-' : '+');
+        
+        let clues = ["Power +/- Number Series"];
+        
+        // Formulates: Num(X_TYPE)^POWER_TYPE [SIGN]/[PATTERN] Y_TYPE
+        let formulaClue = `Num(${xType})^${powerType} ${initialSign}/${patternRule} Num(${yType})`;
+        clues.push(formulaClue);
+
+        // 3. Process calculations and step sequences
+        for (let i = 0; i < n; i++) {
+            let p = (powerType === 'same') ? pow1 : (i % 2 === 0 ? pow1 : pow2);
+            let valX = Math.pow(setX[i], p);
+            let valY = setY[i];
+            let currentOp = operation;
+            let result;
+
+            if (structuralPattern === 'cont') {
+                result = (operation === '+') ? valX + valY : valX - valY;
+            } else {
+                currentOp = (i % 2 === 0) ? operation : (operation === '+' ? '-' : '+');
+                result = (currentOp === '+') ? valX + valY : valX - valY;
+            }
+
+            clues.push(`${setX[i]}^${p}${currentOp}${valY}`);
+            sequence.push(result);
+        }
+        return [sequence, clues];
+    }
+
+    function semiF2_LargeGap(n) {
+        let sequence = [];
+        
+        // 1. Setup the basic pool choices
+        let poolChoices = [
+            { type: 'Prime', pool: generatePrimePool(6) },
+            { type: 'AP', pool: generateAPPool(20, 60, 6) },
+            { type: 'Fibonacci', pool: generateFibonacciPool(23, 20) },
+            { type: 'GP', pool: generateGPPool(3, 6, 2, 3) }
+        ];
+        
+        let chosenPoolObj = getRandomChoice(poolChoices);
+        let setX = chosenPoolObj.pool;
+        let poolType = chosenPoolObj.type;
+
+        let currentNum = getRandomInt(-100, 100);
+        let structuralPattern = getRandomChoice(['cont', 'flip']);
+        let operation = getRandomChoice(['+', '-']);
+
+        // 2. Build the structural notation string for Clue 2
+        let initialSign = operation;
+        // If continuous, match initialSign. If flip, show opposite sign.
+        let patternRule = (structuralPattern === 'cont') ? initialSign : (initialSign === '+' ? '-' : '+');
+        
+        // First structural header clue
+        let clues = ["Gaps of Number Series"];
+        
+        // Second explicit formula clue: e.g., "Num +/+ Prime" or "Num -/+ GP"
+        let formulaClue = `Previous Num ${initialSign}/${patternRule} Num(${poolType})`;
+        clues.push(formulaClue);
+
+        // 3. Calculate sequence data and step operations
+        for (let i = 0; i < n; i++) {
+            sequence.push(currentNum);
+            let currentOp = operation;
+            let nextNum;
+
+            if (structuralPattern === 'cont') {
+                nextNum = (operation === '+') ? currentNum + setX[i] : currentNum - setX[i];
+            } else {
+                currentOp = (i % 2 === 0) ? operation : (operation === '+' ? '-' : '+');
+                nextNum = (currentOp === '+') ? currentNum + setX[i] : currentNum - setX[i];
+            }
+
+            if (i < n - 1) {
+                clues.push(`${currentOp}${setX[i]}`);
+            }
+            currentNum = nextNum;
+        }
+        return [sequence, clues];
+    }
+
+    function semiF3_GPFraction(n) {
+        let sequence = [];
+        let clues = ["GP of Fractional Multiplier"];
+        let setX = getRandomChoice([generatePrimePool(0), generateAPPool(1, 2, 0)]);
+        let startNum = 16 * getRandomInt(1, 20);
+
+        for (let i = 0; i < n; i++) {
+            sequence.push(startNum);
+            let nextNum = (startNum * setX[i]) / 2;
+            if (i < n - 1) clues.push(`${setX[i]}/2 * Number`);
+            startNum = nextNum;
+        }
+        return [sequence, clues];
+    }
+
+    // --- State Variables ---
+    let currentSequence = [];
+    let clueSet = [];
+    let targetIndex = -1;
+    let correctAnswer = null;
+    let currentClueIndex = 0;
+    let isRoundActive = true;
+
+    // --- Core Game Functions ---
+    function startQuiz() {
+        document.body.style.backgroundColor = "#d3d3d3"; 
+        document.getElementById('feedbackText').innerHTML = "";
+        document.getElementById('clueStack').innerHTML = "";
+        document.getElementById('clueBtn').classList.add('hidden');
+        document.getElementById('clueBtn').disabled = false;
+        document.getElementById('ansBtn').classList.add('hidden');
+        document.getElementById('nextBtn').classList.add('hidden');
+        document.getElementById('submitBtn').classList.remove('hidden');
+        
+        const inputEl = document.getElementById('userInput');
+        inputEl.value = "";
+        inputEl.disabled = false;
+        inputEl.style.backgroundColor = "#ffffff";
+        inputEl.style.borderColor = "#555";
+        currentClueIndex = 0;
+        isRoundActive = true;
+
+        let chosenSet = getRandomChoice([semiF1_PowerAdd(6), semiF2_LargeGap(6), semiF3_GPFraction(6)]);
+        currentSequence = [...chosenSet[0]];
+        clueSet = chosenSet[1];
+
+        targetIndex = getRandomInt(0, currentSequence.length - 1);
+        correctAnswer = currentSequence[targetIndex];
+
+        const trackContainer = document.getElementById('sequenceTrack');
+        let textSegments = [];
+
+        currentSequence.forEach((val, idx) => {
+            if (idx === targetIndex) {
+                textSegments.push(`<span class="blank-slot">___</span>`);
+            } else {
+                textSegments.push(val);
+            }
+        });
+        
+        trackContainer.innerHTML = textSegments.join(", ");
+        inputEl.focus();
+    }
+
+    function handleKeyPress(event) {
+        if (event.key === "Enter" && isRoundActive) {
+            checkAnswer();
+        }
+    }
+
+    function checkAnswer() {
+        const inputEl = document.getElementById('userInput');
+        if (!inputEl || inputEl.value.trim() === "") {
+            alert("Please enter a numeric input value!");
+            return;
+        }
+
+        let userAns = parseInt(inputEl.value, 10);
+        let feedbackBox = document.getElementById('feedbackText');
+
+        if (userAns === correctAnswer) {
+            document.body.style.backgroundColor = "#32cd32"; 
+            feedbackBox.innerHTML = `<span class="right-text">Right</span>`;
+            
+            lockRoundSuccess();
+            revealAllCluesAtOnce(); // Instantly show explanation logic breakdown when winning
+        } else {
+            document.body.style.backgroundColor = "#ff4d4d"; 
+            feedbackBox.innerHTML = `<span class="wrong-text">Wrong</span>`;
+            
+            document.getElementById('clueBtn').classList.remove('hidden');
+            document.getElementById('clueBtn').innerText = `Clue ${currentClueIndex + 1}`;
+            document.getElementById('ansBtn').classList.remove('hidden');
+        }
+    }
+
+    function lockRoundSuccess() {
+        isRoundActive = false;
+        document.getElementById('userInput').disabled = true;
+        document.getElementById('submitBtn').classList.add('hidden');
+        document.getElementById('clueBtn').classList.add('hidden');
+        document.getElementById('ansBtn').classList.add('hidden');
+        document.getElementById('nextBtn').classList.remove('hidden');
+        
+        const blankBox = document.querySelector('.blank-slot');
+        if (blankBox) {
+            blankBox.innerText = correctAnswer;
+            blankBox.style.color = "#28a745";
+        }
+    }
+
+    function revealClue() {
+        const stackContainer = document.getElementById('clueStack');
+
+        if (currentClueIndex < clueSet.length) {
+            let newClueLine = document.createElement('div');
+            newClueLine.className = 'clue-line';
+            newClueLine.innerText = `Clue ${currentClueIndex + 1}: ${clueSet[currentClueIndex]}`;
+            stackContainer.appendChild(newClueLine);
+            
+            currentClueIndex++;
+            
+            if (currentClueIndex >= clueSet.length) {
+                document.getElementById('clueBtn').innerText = "No More";
+                document.getElementById('clueBtn').disabled = true;
+            } else {
+                document.getElementById('clueBtn').innerText = `Clue ${currentClueIndex + 1}`;
+            }
+        }
+    }
+
+    // Appends every single logical clue item line-by-line sequentially below the next action row
+    function revealAllCluesAtOnce() {
+        const stackContainer = document.getElementById('clueStack');
+        stackContainer.innerHTML = ""; // Clear out previous clutter references
+        
+        clueSet.forEach((clueText, index) => {
+            let newClueLine = document.createElement('div');
+            newClueLine.className = 'clue-line';
+            newClueLine.innerText = `Clue ${index + 1}: ${clueText}`;
+            stackContainer.appendChild(newClueLine);
+        });
+    }
+
+    function showAnswer() {
+        isRoundActive = false;
+        const inputEl = document.getElementById('userInput');
+        if (inputEl) {
+            inputEl.value = correctAnswer;
+            inputEl.disabled = true;
+            inputEl.style.backgroundColor = "#d4edda";
+            inputEl.style.borderColor = "#28a745";
+        }
+        
+        const blankBox = document.querySelector('.blank-slot');
+        if (blankBox) {
+            blankBox.innerText = correctAnswer;
+            blankBox.style.color = "#28a745";
+        }
+
+        document.getElementById('submitBtn').classList.add('hidden');
+        document.getElementById('clueBtn').classList.add('hidden');
+        document.getElementById('ansBtn').classList.add('hidden');
+        document.getElementById('nextBtn').classList.remove('hidden');
+        
+        revealAllCluesAtOnce(); // Also dump them down when conceding to give full clarity
+    }
+
+    function initiateNextRound() {
+        startQuiz();
+    }
+
+    window.onload = startQuiz;
+</script>
+
+</body>
+</html>

@@ -1,0 +1,348 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>🎯 Number Guess Game</title>
+    <style>
+        :root {
+            --bg-color: #121212;
+            --card-bg: #1e1e1e;
+            --text-color: #e0e0e0;
+            --primary: #4caf50;
+            --error: #cf6679;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            box-sizing: border-box;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 500px;
+            background-color: var(--card-bg);
+            padding: 25px;
+            border-radius: 12px;
+            box-shadow: 0 8px 24px rgba(0,0,0,0.5);
+            text-align: center;
+        }
+
+        h1 {
+            font-size: 1.8rem;
+            margin-bottom: 5px;
+            color: #ffffff;
+        }
+
+        .divider {
+            height: 2px;
+            background: linear-gradient(90deg, transparent, var(--primary), transparent);
+            margin: 15px 0;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Menu Styles */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            background-color: #2a2a2a;
+            color: var(--text-color);
+            border: 1px solid #444;
+            border-radius: 6px;
+            cursor: pointer;
+            text-align: left;
+            font-size: 0.95rem;
+            transition: background 0.2s, border-color 0.2s;
+        }
+
+        .btn:hover {
+            background-color: #333;
+            border-color: var(--primary);
+        }
+
+        /* Gameplay Styles */
+        .info-box {
+            background-color: #252525;
+            padding: 12px;
+            border-radius: 6px;
+            margin-bottom: 15px;
+            font-size: 0.95rem;
+            border-left: 4px solid var(--primary);
+        }
+
+        .input-group {
+            margin: 20px 0;
+        }
+
+        input[type="text"] {
+            width: 80%;
+            padding: 12px;
+            font-size: 1.2rem;
+            letter-spacing: 4px;
+            text-align: center;
+            background-color: #121212;
+            color: #fff;
+            border: 2px solid #444;
+            border-radius: 6px;
+            outline: none;
+        }
+
+        input[type="text"]:focus {
+            border-color: var(--primary);
+        }
+
+        .submit-btn {
+            background-color: var(--primary);
+            color: white;
+            font-weight: bold;
+            text-align: center;
+            letter-spacing: 1px;
+        }
+
+        .submit-btn:hover {
+            background-color: #43a047;
+        }
+
+        .error-msg {
+            color: var(--error);
+            font-size: 0.9rem;
+            margin-top: 8px;
+            min-height: 20px;
+        }
+
+        /* History Log */
+        .history {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            background: #151515;
+            padding: 10px;
+            border-radius: 6px;
+        }
+
+        .history-item {
+            padding: 6px 8px;
+            border-bottom: 1px solid #222;
+            font-family: monospace;
+            font-size: 1.05rem;
+            display: flex;
+            justify-content: space-between;
+        }
+
+        .restart-btn {
+            background-color: #0288d1;
+            color: white;
+            font-weight: bold;
+            margin-top: 15px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🎯 NUMBER GUESS GAME</h1>
+    <div class="divider"></div>
+
+    <div id="menu-screen">
+        <p style="margin-bottom: 20px; color: #aaa;">Choose difficulty level:</p>
+        <button class="btn" onclick="startGame('1')"><strong>1. Expert</strong> — Hidden digits + Mastermind hints (🟢 only)</button>
+        <button class="btn" onclick="startGame('2')"><strong>2. Hard</strong> — Hidden digits + Wordle hints (🟢 🟡 ⚫)</button>
+        <button class="btn" onclick="startGame('3')"><strong>3. Medium</strong> — Pool shown + Mastermind hints (🟢 only)</button>
+        <button class="btn" onclick="startGame('4')"><strong>4. Easy</strong> — Pool shown + Wordle hints (🟢 🟡 ⚫)</button>
+    </div>
+
+    <div id="game-screen" class="hidden">
+        <div id="pool-display" class="info-box"></div>
+        
+        <div class="input-group">
+            <input type="text" id="guess-input" maxlength="9" placeholder="5 Digits" autocomplete="off">
+            <div id="error-display" class="error-msg"></div>
+            <button class="btn submit-btn" onclick="processGuess()">SUBMIT GUESS</button>
+        </div>
+
+        <div class="history" id="history-box">
+            <div style="color: #666; text-align: center; font-size: 0.9rem;">Your attempts will appear here</div>
+        </div>
+    </div>
+
+    <div id="win-screen" class="hidden">
+        <h2 style="color: var(--primary);">🎉 Code Cracked!</h2>
+        <div class="info-box" id="win-message" style="border-left-color: #0288d1;"></div>
+        <button class="btn restart-btn" onclick="resetToMenu()">PLAY AGAIN</button>
+    </div>
+</div>
+
+<script>
+    let secretCode = [];
+    let revealedPool = null;
+    let mode = '';
+    let attempts = 0;
+
+    // Elements
+    const menuScreen = document.getElementById('menu-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const winScreen = document.getElementById('win-screen');
+    const poolDisplay = document.getElementById('pool-display');
+    const guessInput = document.getElementById('guess-input');
+    const errorDisplay = document.getElementById('error-display');
+    const historyBox = document.getElementById('history-box');
+    const winMessage = document.getElementById('win-message');
+
+    // Setup input listeners for desktop/mobile accessibility (Enter key submits)
+    guessInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            processGuess();
+        }
+    });
+
+    function generateSecretCode() {
+        let digits = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+        // Shuffle helper to safely get 5 unique random digits
+        for (let i = digits.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [digits[i], digits[j]] = [digits[j], digits[i]];
+        }
+        return digits.slice(0, 5);
+    }
+
+    function startGame(selectedMode) {
+        mode = selectedMode;
+        attempts = 0;
+        secretCode = generateSecretCode();
+        historyBox.innerHTML = '';
+        errorDisplay.innerText = '';
+        guessInput.value = '';
+
+        // Handle Pool Visibility
+        if (mode === '3' || mode === '4') {
+            revealedPool = [...secretCode].sort((a, b) => a - b);
+            poolDisplay.innerHTML = `📋 <strong>Your 5 digits are:</strong> [ ${revealedPool.join(', ')} ]<br><span style="font-size:0.8rem; color:#aaa;">Arrange these exact digits in order!</span>`;
+        } else {
+            revealedPool = null;
+            poolDisplay.innerHTML = `🕵️ <strong>The 5 digits are hidden!</strong><br><span style="font-size:0.8rem; color:#aaa;">Guess which numbers they are and their order.</span>`;
+        }
+
+        // Switch screens
+        menuScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+        guessInput.focus();
+    }
+
+    function processGuess() {
+        errorDisplay.innerText = '';
+        let rawInput = guessInput.value;
+        
+        // Strip spaces out
+        let cleanInput = rawInput.replace(/\s+/g, '');
+
+        // Validation 1: Exactly 5 characters
+        if (cleanInput.length !== 5) {
+            errorDisplay.innerText = "❌ Error: You must enter exactly 5 digits.";
+            return;
+        }
+
+        // Validation 2: Must be entirely numbers
+        if (!/^\d+$/.test(cleanInput)) {
+            errorDisplay.innerText = "❌ Error: Please enter numbers from 0 to 9 only.";
+            return;
+        }
+
+        // Convert string to array of integers
+        let guess = cleanInput.split('').map(Number);
+
+        // Validation 3: Check for duplicates
+        let uniqueDigits = new Set(guess);
+        if (uniqueDigits.size !== 5) {
+            errorDisplay.innerText = "❌ Error: All digits must be unique. No repeating numbers!";
+            return;
+        }
+
+        // Validation 4: For modes 3 & 4, check against revealed pool
+        if (revealedPool) {
+            let sortedGuess = [...guess].sort((a, b) => a - b);
+            let matchesPool = sortedGuess.every((val, index) => val === revealedPool[index]);
+            if (!matchesPool) {
+                errorDisplay.innerText = `❌ Error: You must only use the digits: [${revealedPool.join(', ')}]`;
+                return;
+            }
+        }
+
+        // Guess passes validations
+        attempts++;
+        guessInput.value = ''; // clear input for next turn
+
+        // Check Win Condition
+        let isWin = guess.every((val, i) => val === secretCode[i]);
+        if (isWin) {
+            showWinScreen();
+            return;
+        }
+
+        // If not a win, generate feedback
+        let feedback = generateFeedbackString(guess);
+        
+        // Remove placeholder line if it's the first attempt
+        if (attempts === 1) historyBox.innerHTML = '';
+
+        // Add to history logs
+        let logItem = document.createElement('div');
+        logItem.className = 'history-item';
+        logItem.innerHTML = `<span>#${attempts} &nbsp; <strong>${cleanInput}</strong></span> <span>${feedback}</span>`;
+        historyBox.insertBefore(logItem, historyBox.firstChild); // Newest attempts on top
+    }
+
+    function generateFeedbackString(guess) {
+        let feedbackArray = [];
+
+        // Mode 1 & 3: Mastermind Rules
+        if (mode === '1' || mode === '3') {
+            for (let i = 0; i < 5; i++) {
+                if (guess[i] === secretCode[i]) {
+                    feedbackArray.append ? null : feedbackArray.push("🟢");
+                }
+            }
+            return feedbackArray.length === 0 ? "<span style='color:#666;'>No matches</span>" : feedbackArray.join(' ');
+        } 
+        
+        // Mode 2 & 4: Wordle Rules
+        else if (mode === '2' || mode === '4') {
+            for (let i = 0; i < 5; i++) {
+                if (guess[i] === secretCode[i]) {
+                    feedbackArray.push("🟢");
+                } else if (secretCode.includes(guess[i])) {
+                    feedbackArray.push("🟡");
+                } else {
+                    feedbackArray.push("⚫");
+                }
+            }
+            return feedbackArray.join(' ');
+        }
+    }
+
+    function showWinScreen() {
+        gameScreen.classList.add('hidden');
+        winScreen.classList.remove('hidden');
+        winMessage.innerHTML = `Yeah, you have cracked the code!<br><strong>Total Attempts:</strong> ${attempts}<br><strong>Secret Code:</strong> ${secretCode.join(' ')}`;
+    }
+
+    function resetToMenu() {
+        winScreen.classList.add('hidden');
+        menuScreen.classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
