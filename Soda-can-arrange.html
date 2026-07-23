@@ -1,0 +1,511 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>🥤 Soda Can Arrange!</title>
+    <style>
+        :root {
+            --bg-color: #0f172a;
+            --card-bg: #1e293b;
+            --text-color: #f8fafc;
+            --primary: #22c55e;
+            --shelf-color: #64748b;
+        }
+
+        body {
+            font-family: 'Segoe UI', system-ui, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 15px;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            min-height: 100vh;
+            box-sizing: border-box;
+            touch-action: manipulation;
+        }
+
+        .container {
+            width: 90%;
+            max-width: 500px;
+            background-color: var(--card-bg);
+            padding: 20px 10px 30px 10px;
+            border-radius: 16px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+            text-align: center;
+            align-items: center;
+            margin: auto;
+        }
+
+        h1 {
+            font-size: 1.6rem;
+            margin: 0 0 5px 0;
+            color: #ffffff;
+            letter-spacing: 1px;
+        }
+
+        .divider {
+            height: 4px;
+            background: linear-gradient(90deg, #ef4444, #f6ab3b, #bac522, #22c530, #3beaf6, #0c08ea, #cd44ef);
+            margin: 12px 0;
+            border-radius: 2px;
+        }
+
+        .hidden { display: none !important; }
+
+        /* Menu */
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 14px;
+            margin: 12px 0;
+            background-color: #334155;
+            color: var(--text-color);
+            border: 2px solid #475569;
+            border-radius: 8px;
+            cursor: pointer;
+            text-align: center;
+            font-size: 1rem;
+            font-weight: bold;
+            transition: all 0.2s;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        .btn:hover, .btn:active {
+            background-color: #475569;
+            border-color: #3b82f6;
+            transform: translateY(-1px);
+        }
+
+        /* Soda Shelves */
+        .shelf-title {
+            font-size: 0.9rem;
+            color: #94a3b8;
+            margin-bottom: 6px;
+            text-align: left;
+            font-weight: bold;
+        }
+
+        .shelf {
+            background-color: #0f172a;
+            border-bottom: 8px solid var(--shelf-color);
+            padding: 20px 10px;
+            border-radius: 8px 8px 4px 4px;
+            min-height: 65px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: safe center; /* Centered when fitting, left-aligned when overflowing */
+            gap: 12px;
+            flex-wrap: nowrap; 
+            overflow-x: auto;
+        }
+
+        /* Soda Can Styling */
+        .can {
+            width: 32px;
+            height: 72px;
+            border-radius: 6px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: bold;
+            font-size: 0.8rem;
+            color: white;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.8);
+            cursor: pointer;
+            box-shadow: inset 0 8px 0 rgba(255,255,255,0.2), 
+                        inset 0 -8px 0 rgba(0,0,0,0.3),
+                        0 4px 6px rgba(0,0,0,0.3);
+            transition: transform 0.15s, border-color 0.15s, box-shadow 0.15s;
+            user-select: none;
+            -webkit-user-select: none;
+            border: 2px solid rgba(0,0,0,0.2);
+            position: relative;
+            -webkit-tap-highlight-color: transparent;
+            flex-shrink: 0;
+        }
+
+        /* Top metal tab effect */
+        .can::before {
+            content: '';
+            position: absolute;
+            top: 2px;
+            left: 25%;
+            width: 50%;
+            height: 3px;
+            background: #cbd5e1;
+            border-radius: 2px;
+        }
+
+        /* Selected State for Tap Control */
+        .can.selected {
+            border: 3px solid #fffffe;
+            transform: translateY(-8px) scale(1.08);
+            box-shadow: inset 0 8px 0 rgba(255,255,255,0.2), 
+                        inset 0 -8px 0 rgba(0,0,0,0.3),
+                        0 0 12px #a7a6a6;
+        }
+
+        /* Rules Text */
+        .rules-box {
+            background-color: #334155;
+            padding: 10px;
+            border-radius: 8px;
+            font-size: 0.85rem;
+            color: #cbd5e1;
+            margin-bottom: 15px;
+            text-align: left;
+        }
+
+        .action-row {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .action-btn {
+            margin: 0;
+            padding: 14px;
+        }
+
+        /* Live Feedback Box */
+        .feedback-box {
+            background-color: #0f172a;
+            border: 2px solid #334155;
+            padding: 15px;
+            border-radius: 8px;
+            margin-top: 15px;
+            font-size: 1.2rem;
+            font-weight: bold;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+            min-height: 30px;
+        }
+
+        .win-btn { background-color: #0288d1; border-color: #03a9f4; color: white;}
+
+        /* Slider & Menu Styling */
+        .slider-display {
+            font-size: 1.15rem;
+            font-weight: bold;
+            color: #ffffff;
+            margin-bottom: 25px;
+            min-height: 30px;
+        }
+
+        .slider-container {
+            position: relative;
+            width: 90%;
+            margin: 0 auto 30px auto;
+        }
+
+        /* Range Input Reset & Track */
+        input[type=range] {
+            -webkit-appearance: none;
+            appearance: none;
+            width: 100%;
+            background: transparent;
+        }
+
+        input[type=range]:focus {
+            outline: none;
+        }
+
+        input[type=range]::-webkit-slider-runnable-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        /* Glowing Slider Thumb */
+        input[type=range]::-webkit-slider-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #f59e0b;
+            box-shadow: 0 0 12px #f59e0b;
+            cursor: pointer;
+            -webkit-appearance: none;
+            margin-top: -8px;
+            transition: transform 0.1s, background 0.2s;
+        }
+
+        input[type=range]::-moz-range-track {
+            width: 100%;
+            height: 8px;
+            cursor: pointer;
+            background: #334155;
+            border-radius: 4px;
+        }
+
+        input[type=range]::-moz-range-thumb {
+            height: 24px;
+            width: 24px;
+            border-radius: 50%;
+            background: #f59e0b;
+            box-shadow: 0 0 12px #f59e0b;
+            border: none;
+            cursor: pointer;
+        }
+
+        /* Tick Marks Setup */
+        .ticks {
+            display: flex;
+            justify-content: space-between;
+            padding: 0 10px;
+            margin-top: 8px;
+        }
+
+        .ticks span {
+            width: 2px;
+            height: 12px;
+            background-color: #475569;
+            display: block;
+        }
+
+        .start-btn {
+            background-color: #f59e0b;
+            border-color: #d97706;
+            max-width: 250px;
+            color: #ffffff;
+            font-size: 1.1rem;
+            font-weight: bold;
+            margin: 10px auto 0 auto;
+        }
+
+        .start-btn:hover, .start-btn:active {
+            background-color: #d97706;
+            border-color: #b45309;
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <h1>🥤 SODA CAN ARRANGE</h1>
+    <div id="mode-subtitle" style="color: #94a3b8; font-size: 0.9rem; font-weight: bold;">Arrange the soda can in correct order</div>
+    <div class="divider"></div>
+
+    <!-- Screen 1: Menu Selection -->
+    <div id="menu-screen">
+        <p style="margin-bottom: 20px; color: #94a3b8;">Choose how many soda cans to arrange behind the screen:</p>
+        
+        <!-- Dynamic Level Label -->
+        <div id="slider-label" class="slider-display">
+            🟢 Very Easy — 4 Cans
+        </div>
+
+        <!-- Range Slider Container -->
+        <div class="slider-container">
+            <input type="range" id="can-slider" min="4" max="9" value="4" step="1" oninput="updateSliderLabel(this.value)">
+            
+            <div class="ticks">
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+                <span></span>
+            </div>
+        </div>
+
+        <button class="btn start-btn" onclick="launchSelectedGame()">🚀 START GAME</button>
+    </div>
+
+    <!-- Screen 2: Gameplay Setup -->
+    <div id="game-screen" class="hidden">
+        <div class="rules-box">
+            🎯 <strong>Goal:</strong> Tap one can to select, then tap another to switch positions!<br>
+            📢 <strong>Feedback:</strong> Shows how many soda cans are in their <strong>exact correct spot</strong>.<br>
+            🏆 <strong>Win:</strong> Arrange all cans in the correct order to win!
+        </div>
+
+        <div class="shelf-title">📥 ARRANGE SODA CANS:</div>
+        <div class="shelf" id="player-shelf"></div>
+
+        <div class="action-row">
+            <button class="btn action-btn" style="background-color: var(--primary); border-color:#4ade80;" onclick="submitArrangement()">🔔 CHECK ORDER</button>
+        </div>
+
+        <div class="shelf-title">📢 LAST FEEDBACK:</div>
+        <div class="feedback-box" id="live-feedback">
+            <span style="color: #475569; font-size: 0.9rem; font-weight: normal;">Arrange cans and press Check Order!</span>
+        </div>
+    </div>
+
+    <!-- Screen 3: Victory Window -->
+    <div id="win-screen" class="hidden">
+        <h2 style="color: var(--primary); font-size: 2rem; margin-bottom: 5px;">🎉 Perfect Match!</h2>
+        <p style="color: #94a3b8; margin-top: 0;">You cracked the secret lineup!</p>
+        <div class="shelf" id="winning-shelf" style="background: #1e293b; border-bottom-color: var(--primary);"></div>
+        <p id="score-text" style="font-weight: bold; font-size: 1.1rem;"></p>
+        <button class="btn win-btn" onclick="resetToMenu()">PLAY AGAIN</button>
+    </div>
+</div>
+
+<script>
+    const DIFFICULTY_CONFIG = {
+        4: { label: "🟢 Very Easy — 4 Cans", title: "Very Easy Mode (4 Cans)" },
+        5: { label: "🔵 Easy — 5 Cans", title: "Easy Mode (5 Cans)" },
+        6: { label: "🟡 Medium — 6 Cans", title: "Medium Mode (6 Cans)" },
+        7: { label: "🟠 Hard — 7 Cans", title: "Hard Mode (7 Cans)" },
+        8: { label: "🔴 Extreme — 8 Cans", title: "Extreme Mode (8 Cans)" },
+        9: { label: "🟣 Insane — 9 Cans", title: "Insane Mode (9 Cans)" }
+    };
+
+    const FLAVORS = [
+        { id: 0, name: "Cola", color: "#b91c1c" },      
+        { id: 1, name: "Lime", color: "#15803d" },      
+        { id: 2, name: "Berry", color: "#1d4ed8" },     
+        { id: 3, name: "Orange", color: "#c2410c" },    
+        { id: 4, name: "Grape", color: "#6b21a8" },     
+        { id: 5, name: "Lemon", color: "#a16207" },     
+        { id: 6, name: "Cream", color: "#be185d" },     
+        { id: 7, name: "Mint", color: "#0f766e" },      
+        { id: 8, name: "Vanilla", color: "#78350f" }    
+    ];
+
+    let secretLineup = [];
+    let currentGuess = [];
+    let codeLength = 5;
+    let attempts = 0;
+    let selectedCanIndex = null;
+
+    const menuScreen = document.getElementById('menu-screen');
+    const gameScreen = document.getElementById('game-screen');
+    const winScreen = document.getElementById('win-screen');
+    const playerShelf = document.getElementById('player-shelf');
+    const liveFeedback = document.getElementById('live-feedback');
+    const modeSubtitle = document.getElementById('mode-subtitle');
+    const winScreenShelf = document.getElementById('winning-shelf');
+    const scoreText = document.getElementById('score-text');
+
+    function updateSliderLabel(val) {
+        const config = DIFFICULTY_CONFIG[val];
+        document.getElementById('slider-label').innerText = config.label;
+    }
+
+    function launchSelectedGame() {
+        const selectedVal = parseInt(document.getElementById('can-slider').value);
+        const config = DIFFICULTY_CONFIG[selectedVal];
+        startGame(selectedVal, config.title);
+    }
+
+    function startGame(length, label) {
+        codeLength = length;
+        attempts = 0;
+        selectedCanIndex = null;
+        
+        let workingFlavors = [...FLAVORS].slice(0, codeLength);
+        
+        // Shuffle to generate the secret correct lineup
+        for (let i = workingFlavors.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [workingFlavors[i], workingFlavors[j]] = [workingFlavors[j], workingFlavors[i]];
+        }
+        secretLineup = [...workingFlavors];
+        
+        // Shuffle again to present initial layout
+        for (let i = workingFlavors.length - 1; i > 0; i--) {
+            const j = Math.floor(Math.random() * (i + 1));
+            [workingFlavors[i], workingFlavors[j]] = [workingFlavors[j], workingFlavors[i]];
+        }
+        currentGuess = [...workingFlavors];
+
+        modeSubtitle.innerText = label;
+        liveFeedback.innerHTML = '<span style="color: #475569; font-size: 0.9rem; font-weight: normal;">Arrange cans and press Check Order!</span>';
+        
+        renderShelf();
+        
+        menuScreen.classList.add('hidden');
+        gameScreen.classList.remove('hidden');
+    }
+
+    function renderShelf() {
+        playerShelf.innerHTML = '';
+        currentGuess.forEach((item, index) => {
+            const canEl = document.createElement('div');
+            canEl.className = 'can';
+            canEl.style.backgroundColor = item.color;
+            canEl.innerText = item.name[0];
+            canEl.dataset.index = index;
+
+            if (selectedCanIndex === index) {
+                canEl.classList.add('selected');
+            }
+
+            canEl.addEventListener('click', () => handleCanTap(index));
+
+            playerShelf.appendChild(canEl);
+        });
+    }
+
+    function handleCanTap(index) {
+        if (selectedCanIndex === null) {
+            // First Tap: Select the can
+            selectedCanIndex = index;
+        } else if (selectedCanIndex === index) {
+            // Tapping the same can deselects it
+            selectedCanIndex = null;
+        } else {
+            // Second Tap: Swap positions
+            let temp = currentGuess[selectedCanIndex];
+            currentGuess[selectedCanIndex] = currentGuess[index];
+            currentGuess[index] = temp;
+            
+            selectedCanIndex = null;
+        }
+        
+        renderShelf();
+    }
+
+    function submitArrangement() {
+        attempts++;
+
+        let exactMatches = 0;
+        for (let i = 0; i < codeLength; i++) {
+            if (currentGuess[i].id === secretLineup[i].id) {
+                exactMatches++;
+            }
+        }
+
+        if (exactMatches === codeLength) {
+            triggerWinState();
+            return;
+        }
+
+        if (exactMatches === 0) {
+            liveFeedback.innerHTML = `<span>Attempt ${attempts} : ❌ No matches</span>`;
+        } else {
+            const numberEmojis = ['0️⃣', '1️⃣', '2️⃣', '3️⃣', '4️⃣', '5️⃣', '6️⃣', '7️⃣', '8️⃣', '9️⃣'];
+            const emojiDigit = numberEmojis[exactMatches] || exactMatches;
+            liveFeedback.innerHTML = `<span>Attempt ${attempts} : ${emojiDigit} Correct Spots</span>`;
+        }
+    }
+
+    function triggerWinState() {
+        gameScreen.classList.add('hidden');
+        winScreen.classList.remove('hidden');
+        
+        scoreText.innerText = `Total Attempts Taken: ${attempts}`;
+        
+        winScreenShelf.innerHTML = '';
+        secretLineup.forEach(can => {
+            winScreenShelf.innerHTML += `<div class="can" style="background-color: ${can.color}; cursor: default;">${can.name[0]}</div>`;
+        });
+    }
+
+    function resetToMenu() {
+        modeSubtitle.innerText = "Arrange the soda can in correct order";
+        winScreen.classList.add('hidden');
+        menuScreen.classList.remove('hidden');
+    }
+</script>
+
+</body>
+</html>
