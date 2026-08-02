@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Bubble Split</title>
+  <style>
+    :root {
+      --bg-color: #e4ffff; /* Cyan default matching Tkinter cl="cyan" */
+      --text-color: #1a1a1a;
+      --control-bg: rgba(255, 255, 255, 0.85);
+      --control-border: #ccc;
+    }
+
+    [data-theme="dark"] {
+      --bg-color: #121212;
+      --text-color: #f0f0f0;
+      --control-bg: rgba(30, 30, 30, 0.85);
+      --control-border: #444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body, html {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background-color: var(--bg-color);
+      transition: background-color 0.3s ease;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    }
+
+    /* Top-Right Control Bar */
+    .header-controls {
+      position: fixed;
+      top: 12px;
+      right: 12px;
+      z-index: 9999;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--control-bg);
+      color: var(--text-color);
+      padding: 6px 12px;
+      border-radius: 20px;
+      border: 1px solid var(--control-border);
+      backdrop-filter: blur(4px);
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+    }
+
+    .theme-toggle-btn {
+      background: none;
+      border: none;
+      color: inherit;
+      cursor: pointer;
+      font-size: 14px;
+      font-weight: 600;
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      outline: none;
+    }
+
+    /* Centered Grid Stage */
+    #stage {
+      position: absolute;
+      top: 50%;
+      left: 50%;
+      transform: translate(-50%, -50%);
+    }
+
+    /* Container for each top-level unit frame */
+    .back-frame {
+      position: absolute;
+      background-color: transparent;
+      overflow: hidden;
+    }
+
+    /* Bubble Particle Styling */
+    .bubble-btn {
+      position: absolute;
+      transform: translate(-50%, -50%);
+      border: none;
+      cursor: pointer;
+      outline: none;
+      touch-action: manipulation;
+      border-radius: 50%; /* Pure sphere/circle shape */
+
+      /* Glossy 3D bubble wrap gradient & drop shadow */
+      background-image: 
+        radial-gradient(circle at 32% 28%, rgba(255, 255, 255, 0.85) 0%, rgba(255, 255, 255, 0.4) 18%, rgba(255, 255, 255, 0) 50%),
+        radial-gradient(circle at 50% 85%, rgba(0, 0, 0, 0.35) 0%, rgba(0, 0, 0, 0) 65%);
+      box-shadow: 
+        inset 0 -2px 6px rgba(0, 0, 0, 0.3),
+        inset 0 2px 4px rgba(255, 255, 255, 0.6),
+        0 4px 8px rgba(0, 0, 0, 0.25);
+      
+      transition: transform 0.12s ease, filter 0.1s ease;
+    }
+
+    .bubble-btn:hover {
+      filter: brightness(1.15);
+      transform: translate(-50%, -50%) scale(1.05);
+    }
+
+    .bubble-btn:active {
+      filter: brightness(0.85);
+      transform: translate(-50%, -50%) scale(0.92);
+    }
+  </style>
+</head>
+<body>
+
+  <div class="header-controls">
+    <button class="theme-toggle-btn" id="themeToggle" aria-label="Toggle Theme">
+      <span id="themeIcon">🌙</span>
+      <span id="themeText">Dark Mode</span>
+    </button>
+  </div>
+
+  <div id="stage"></div>
+
+  <script>
+    const stage = document.getElementById('stage');
+    const themeToggleBtn = document.getElementById('themeToggle');
+    const themeIcon = document.getElementById('themeIcon');
+    const themeText = document.getElementById('themeText');
+
+    let largestFs = 0;
+    let smallestButtonSize = 4; // Minimum diameter threshold
+
+    // --- Theme Switcher Logic ---
+    function setTheme(isDark) {
+      if (isDark) {
+        document.documentElement.setAttribute('data-theme', 'dark');
+        themeIcon.textContent = '☀️';
+        themeText.textContent = 'Light Mode';
+        localStorage.setItem('theme', 'dark');
+      } else {
+        document.documentElement.removeAttribute('data-theme');
+        themeIcon.textContent = '🌙';
+        themeText.textContent = 'Dark Mode';
+        localStorage.setItem('theme', 'light');
+      }
+    }
+
+    const savedTheme = localStorage.getItem('theme');
+    const prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+    setTheme(savedTheme === 'dark' || (!savedTheme && prefersDark));
+
+    themeToggleBtn.addEventListener('click', () => {
+      const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+      setTheme(!isDark);
+    });
+
+    // --- Audio Feedback ---
+    const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+    function playPopSound(pitchMultiplier = 1.0) {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      
+      osc.type = 'sine';
+      osc.frequency.setValueAtTime(600 * pitchMultiplier, audioCtx.currentTime);
+      osc.frequency.exponentialRampToValueAtTime(120 * pitchMultiplier, audioCtx.currentTime + 0.08);
+      
+      gain.gain.setValueAtTime(0.3, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.08);
+      
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.08);
+    }
+
+    function playMinSound() {
+      if (audioCtx.state === 'suspended') audioCtx.resume();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = 'square';
+      osc.frequency.setValueAtTime(150, audioCtx.currentTime);
+      gain.gain.setValueAtTime(0.15, audioCtx.currentTime);
+      gain.gain.linearRampToValueAtTime(0.01, audioCtx.currentTime + 0.12);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + 0.12);
+    }
+
+    // --- Quad-Split Logic ---
+    function handleButtonClick(btn, frame, currentCellSize, centerX, centerY) {
+      // Calculate current diameter: Diameter = CellSize / 2
+      const currentDiameter = currentCellSize / 2;
+
+      if (currentDiameter <= smallestButtonSize) {
+        console.log("Minimum bubble size reached:", currentDiameter);
+        playMinSound();
+        return;
+      }
+
+      playPopSound(largestFs / currentCellSize);
+
+      // 2nd Layer calculations:
+      // Split cell into 4 quadrants, each has size = currentCellSize / 2
+      const newCellSize = currentCellSize / 2;
+      
+      // New Diameter = newCellSize / 2 (e.g. 32 / 2 = 16)
+      const newDiameter = newCellSize / 2;
+
+      btn.remove();
+
+      // Center positions for 4 sub-quadrants
+      const xPositions = [centerX - newCellSize / 2, centerX + newCellSize / 2];
+      const yPositions = [centerY - newCellSize / 2, centerY + newCellSize / 2];
+
+      xPositions.forEach(xpos => {
+        yPositions.forEach(ypos => {
+          // Normalize relative positions (0.0 to 1.0)
+          const xRel = xpos / largestFs;
+          const yRel = ypos / largestFs;
+
+          const r = Math.min(255, Math.max(0, Math.floor(xRel * 255)));
+          const g = Math.min(255, Math.max(0, Math.floor(yRel * 255)));
+          const b = Math.floor(0.5 * 255);
+
+          const bgHex = `#${r.toString(16).padStart(2, '0')}${g.toString(16).padStart(2, '0')}${b.toString(16).padStart(2, '0')}`;
+
+          const newBtn = document.createElement('button');
+          newBtn.className = 'bubble-btn';
+          newBtn.style.backgroundColor = bgHex;
+          newBtn.style.width = `${newDiameter}px`;
+          newBtn.style.height = `${newDiameter}px`;
+          newBtn.style.left = `${xpos}px`;
+          newBtn.style.top = `${ypos}px`;
+
+          newBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleButtonClick(newBtn, frame, newCellSize, xpos, ypos);
+          });
+
+          frame.appendChild(newBtn);
+        });
+      });
+    }
+
+    // --- Grid Calculation & Initialization ---
+    function initGrid() {
+      stage.innerHTML = '';
+
+      const width = window.innerWidth;
+      const height = window.innerHeight;
+      const minDimension = Math.min(width, height);
+
+      let divisionCount = 0;
+      let baseSize = 2;
+
+      while (2 * baseSize * Math.pow(2, divisionCount) < minDimension) {
+        divisionCount++;
+      }
+
+      const power = divisionCount - 1;
+      largestFs = 2 * baseSize * Math.pow(2, power);
+
+      const col = Math.floor(width / largestFs);
+      const row = Math.floor(height / largestFs);
+
+      const stageWidth = largestFs * col;
+      const stageHeight = largestFs * row;
+
+      stage.style.width = `${stageWidth}px`;
+      stage.style.height = `${stageHeight}px`;
+
+      for (let i = 0; i < row; i++) {
+        for (let j = 0; j < col; j++) {
+          const backFrame = document.createElement('div');
+          backFrame.className = 'back-frame';
+          backFrame.style.width = `${largestFs}px`;
+          backFrame.style.height = `${largestFs}px`;
+          backFrame.style.left = `${j * largestFs}px`;
+          backFrame.style.top = `${i * largestFs}px`;
+
+          const initialCellSize = largestFs;
+          const initialX = largestFs / 2;
+          const initialY = largestFs / 2;
+
+          // Layer 1: Diameter = CellSize / 2 (Padding = Diameter / 2 on all sides)
+          const initialDiameter = initialCellSize / 2;
+
+          const initialBtn = document.createElement('button');
+          initialBtn.className = 'bubble-btn';
+          initialBtn.style.width = `${initialDiameter}px`;
+          initialBtn.style.height = `${initialDiameter}px`;
+          initialBtn.style.left = `${initialX}px`;
+          initialBtn.style.top = `${initialY}px`;
+          initialBtn.style.backgroundColor = '#f1c40f'; // d9d9d9 ff6b81 f1c40f
+
+          initialBtn.addEventListener('click', (e) => {
+            e.stopPropagation();
+            handleButtonClick(initialBtn, backFrame, initialCellSize, initialX, initialY);
+          });
+
+          backFrame.appendChild(initialBtn);
+          stage.appendChild(backFrame);
+        }
+      }
+    }
+
+    window.addEventListener('load', initGrid);
+    let resizeTimer;
+    window.addEventListener('resize', () => {
+      clearTimeout(resizeTimer);
+      resizeTimer = setTimeout(initGrid, 250);
+    });
+  </script>
+</body>
+</html>
