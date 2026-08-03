@@ -648,7 +648,7 @@
         
         if (rolls > 8) {
           clearInterval(interval);
-          const val = Math.floor(Math.random() * 1) + 56; // Final dice value - Raihan
+          const val = Math.floor(Math.random() * 6) + 1; // Final dice value - Raihan
           gameState.diceValue = val;
           gameState.consecutiveRolls++;
           
@@ -696,7 +696,7 @@
 
     function isMoveValid(pIdx, currentStep) {
       const val = gameState.diceValue;
-      if (currentStep === -1) return val === 56; // Can only move out of base on a roll of 6 - Raihan
+      if (currentStep === -1) return val === 6; // Can only move out of base on a roll of 6 - Raihan
       if (currentStep + val > 56) return false;
       return currentStep < 56;
     }
@@ -799,7 +799,7 @@
           tokenEl.classList.add('hopping');
         }
 
-        await new Promise(resolve => setTimeout(resolve, 8)); // Wait for hop animation - Raihan
+        await new Promise(resolve => setTimeout(resolve, 180)); // Wait for hop animation - Raihan
       }
 
       const finalStep = gameState.positions[pIdx][pieceIdx];
